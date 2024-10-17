@@ -1,37 +1,44 @@
 package com.maelsilva96.opensms
 
 import android.os.Bundle
+import android.view.View
+import android.widget.LinearLayout
 import android.widget.ListView
 import androidx.appcompat.app.AppCompatActivity
 import com.maelsilva96.opensms.adapters.MessageGroupListAdapter
-import com.maelsilva96.opensms.models.Contact
-import com.maelsilva96.opensms.models.MessageData
-import com.maelsilva96.opensms.models.MessageGroup
-import java.util.Date
+import com.maelsilva96.opensms.services.MessageService
 
 class MainActivity : AppCompatActivity() {
+    private val messageService: MessageService = MessageService(this, this)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setTheme(R.style.Theme_OpenSMS)
-
         setContentView(R.layout.activity_main)
+        loadMessages()
+    }
 
-        val messages = listOf(
-            MessageData("SMS 1", Date()),
-            MessageData("SMS 2", Date()),
-            MessageData("SMS 3", Date()),
-            MessageData("Essa é uma mensagem muito longa", Date())
-        )
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (messageService.successRequestPermission(requestCode, grantResults)) {
+            loadMessages()
+        }
+    }
 
-        val listGroup = listOf(
-            MessageGroup(Contact("Phone 1", "+ 55 12 98888-8888"), messages),
-            MessageGroup(Contact("Phone 2", "+ 55 12 98888-8888"), messages),
-            MessageGroup(Contact("Phone 4", "+ 55 12 98888-8888"), messages),
-            MessageGroup(Contact("Phone 5", "+ 55 12 98888-8888"), messages)
-        )
-
-        val adapterSmsMm = MessageGroupListAdapter(this, listGroup)
-        findViewById<ListView>(R.id.message_list).adapter = adapterSmsMm
+    private fun loadMessages() {
+        messageService.load()
+        val messageGroup = messageService.getMessageGroup()
+        val listView = findViewById<ListView>(R.id.message_list)
+        val notFoundBox = findViewById<LinearLayout>(R.id.not_results)
+        if (!messageGroup.isNullOrEmpty())
+        {
+            val adapter = MessageGroupListAdapter(this, messageGroup)
+            listView.adapter = adapter
+            listView.visibility = View.VISIBLE
+            notFoundBox.visibility = View.GONE
+        } else {
+            listView.visibility = View.GONE
+            notFoundBox.visibility = View.VISIBLE
+        }
     }
 }
