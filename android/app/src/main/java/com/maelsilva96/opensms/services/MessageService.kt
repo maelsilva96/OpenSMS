@@ -7,17 +7,19 @@ import android.content.pm.PackageManager
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.maelsilva96.opensms.constants.Sms
+import com.maelsilva96.opensms.decorators.messages.MessageDecorator
+import com.maelsilva96.opensms.decorators.messages.MessageSource
+import com.maelsilva96.opensms.decorators.messages.MessageSourceDecorator
+import com.maelsilva96.opensms.decorators.messages.MmsDecorator
+import com.maelsilva96.opensms.decorators.messages.SmsDecorator
 import com.maelsilva96.opensms.models.MessageGroup
 import com.maelsilva96.opensms.models.MessageMap
-import com.maelsilva96.opensms.services.abstraction.AbstractMessageService
-import com.maelsilva96.opensms.services.concret.MmsMessageService
-import com.maelsilva96.opensms.services.concret.SmsMessageService
 
 class MessageService(private val ctx: Context, private val act: Activity) {
-    private var messageMap: MessageMap? = null
-
-    private val services: List<AbstractMessageService> = listOf(
-        SmsMessageService(ctx), MmsMessageService(ctx)
+    private var messageSource: MessageSource = MmsDecorator(
+        ctx = ctx, wrapper = SmsDecorator(
+            ctx = ctx, wrapper = MessageDecorator()
+        )
     )
 
     private fun hasPermission(): Boolean {
@@ -30,27 +32,12 @@ class MessageService(private val ctx: Context, private val act: Activity) {
             .requestPermissions(act, arrayOf(Manifest.permission.READ_SMS), Sms.SMS_PERMISSION_CODE)
     }
 
-    private fun readAllMessages(): MessageMap {
-        return services.fold(MessageMap()) { messageMap, service ->
-            service.readAllMessages(messageMap)
-            messageMap
-        }
-    }
-
     fun successRequestPermission(requestCode: Int, grantResults: IntArray): Boolean {
         return requestCode == Sms.SMS_PERMISSION_CODE && grantResults.isNotEmpty()
                 && grantResults[0] == PackageManager.PERMISSION_GRANTED
     }
 
-    fun load() {
-        if (hasPermission()) {
-            messageMap = readAllMessages()
-        } else {
-            requestPermission()
-        }
-    }
+    fun load() = if (hasPermission()) this.messageSource.readAllMessages(MessageMap()) else requestPermission()
 
-    fun getMessageGroup(): List<MessageGroup>? {
-        return messageMap?.getMessageGroup()
-    }
+    fun getMessageGroup(): List<MessageGroup>? = this.messageSource.getMessageGroup()
 }

@@ -1,4 +1,4 @@
-package com.maelsilva96.opensms.services.concret
+package com.maelsilva96.opensms.decorators.messages
 
 import android.content.Context
 import android.net.Uri
@@ -7,10 +7,10 @@ import android.util.Log
 import com.maelsilva96.opensms.models.Contact
 import com.maelsilva96.opensms.models.MessageData
 import com.maelsilva96.opensms.models.MessageMap
-import com.maelsilva96.opensms.services.abstraction.AbstractMessageService
 import java.util.Date
 
-class SmsMessageService(override val ctx: Context) : AbstractMessageService(ctx) {
+class SmsDecorator(private val ctx: Context, override val wrapper: MessageSource): MessageSourceDecorator(wrapper)
+{
     private val uri: Uri = Telephony.Sms.CONTENT_URI
     private val projection = arrayOf(Telephony.Sms._ID, Telephony.Sms.DATE, Telephony.Sms.ADDRESS, Telephony.Sms.BODY)
 
@@ -33,5 +33,6 @@ class SmsMessageService(override val ctx: Context) : AbstractMessageService(ctx)
                 Log.d("SMS", "ID: $id, Date: $date, Address: $address, Body: $body")
             }
         }
+        super.readAllMessages(messageMap)
     }
 }
